@@ -11,20 +11,25 @@
         overflow-x: hidden;
         overflow-y: hidden;
         opacity: 1;
+    }
+
+    .body-hover {
         transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
     }
 
-    body:hover {
+    .body-hover:hover {
         opacity: 0.8;
     }
 
     img {
         width: 100vw;
         height: auto;
+        border-radius: 6px;
+        overflow: hidden !important;
     }
 </style>
 
-<body scroll="no">
+<body scroll="no" class="body-hover">
     <img draggable="false" />
 </body>
 
@@ -36,14 +41,9 @@
     let filePath = localStorage[imgKey + "_file"];
     localStorage.removeItem(imgKey);
     localStorage.removeItem(imgKey + "_file");
-
     window.rotateX = 0;
     window.rotateY = 0;
 
-    if (!window.resize) {
-        window.resize = () => { }
-        window.moveBounds = () => { }
-    }
     function rotate(degree) {
         if (lock) {
             return;
@@ -68,9 +68,9 @@
         count: 3,
         time: 0
     }
-    let dowingKey = undefined;
+    let dowingKey = {};
     document.addEventListener("keyup", event => {
-        dowingKey = undefined
+        delete dowingKey[event.key]
     })
     document.addEventListener("keydown", event => {
         console.log(event.key);
@@ -86,18 +86,26 @@
         switch (event.key) {
             case "c":
             case "C":
-                if (dowingKey == "Control" || dowingKey == "Meta") {
-                    //拷贝图片
-                    window.copyImage(img, filePath);
+                if (dowingKey["Control"] || dowingKey["Meta"]) {
+                    document.body.className = ""
+                    //等待透明关闭，再拷贝当前图片
+                    setTimeout(() => window.copyNowImage(), 100)
                 }
                 break
             case "s":
             case "S":
-                if (dowingKey == "Control" || dowingKey == "Meta") {
-                    //保存图片
-                    window.save(img, filePath)
+                if (dowingKey["Control"] || dowingKey["Meta"]) {
+                    document.body.className = ""
+                    //等待透明关闭，再保存当前图片
+                    setTimeout(() => window.saveNowImage(), 100)
                 }
                 break
+            case "q":
+            case "Q":
+                document.body.className = ""
+                //等待透明关闭，再去编辑图片
+                setTimeout(() => window.toEdit(), 100)
+                break;
             case "Escape":
                 window.close();
                 break;
@@ -113,12 +121,14 @@
             case "ArrowRight":
                 window.moveBounds(keyCounter.count / 3, 0);
                 break;
+            case "+":
             case "=":
-                window.resize(img.width + (keyCounter.count / 3) * 4, img.height);
+                window.resize(keyCounter.count / 2, img.height / img.width);
                 break;
             case "-":
+            case "_":
                 if (img.width > 100) {
-                    window.resize(img.width - (keyCounter.count / 3) * 4, img.height);
+                    window.resize(0 - keyCounter.count / 2, img.height / img.width);
                 }
                 break;
             //旋转相关
@@ -145,14 +155,14 @@
                 window.document.body.style.webkitTransform = `rotateX(${window.rotateX}deg) rotateY(${window.rotateY}deg)`
                 break;
         }
-        dowingKey = event.key
+        dowingKey[event.key] = true
     });
     document.body.addEventListener("mousewheel", (e) => {
         var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
         if (delta < 0 && img.width <= 100) {
             return false;
         }
-        window.resize(img.width + (7 * delta), img.height);
+        window.resize(delta * 7, img.height / img.width);
         return false;
     }, false);
 
